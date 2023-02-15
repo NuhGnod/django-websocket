@@ -5,11 +5,12 @@ from django.core.cache import cache
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        print("self.scope.session : {}".format(self.scope['session']))
+        print("self.scope.session : {}".format(self.scope['session'].keys()))
         print("self.user : {}".format(self))
         print("self.scope.user : {}".format(self.scope['user'].pk))
         print("AsyncWebSocketConsumer : {}".format(AsyncWebsocketConsumer))
         print("self.scope : {}".format(self.scope))
+        print("self.channel_name : {}".format(self.channel_name))
     	# 파라미터 값으로 채팅 룸을 구별
         self.room_name = self.scope['url_route']['kwargs']['room_name']
         self.room_group_name = 'chat_%s' % self.room_name
@@ -33,6 +34,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
     # 웹소켓으로부터 메세지 받음
 
     async def receive(self, text_data):
+        print("self.channel_name : {}".format(self.channel_name))
+        print(self)
         a = ['1','2']
         a.append('3')
         print(a)
@@ -61,11 +64,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self.room_group_name,
             {
                 'type': 'chat_message',
-                'message': datas,
+                'message': message,
                 'id' : text_data_json['user_id']
             }
         )
-
+        # await self.send(text_data=json.dumps({ #이러면 상대방에겐 안가고 나한테만 보내짐.
+        #     'message': datas,
+        #     'id' : text_data_json['user_id']
+        #
+        # }))
     # 룸 그룹으로부터 메세지 받음
     async def chat_message(self, event):
         message = event['message']
