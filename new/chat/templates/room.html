@@ -1,0 +1,101 @@
+<!-- chat/templates/chat/room.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>Chat Room</title>
+</head>
+<body>
+<div id="self"><textarea id="self_chat-log" cols="100" rows="20"></textarea><br>
+</div>
+<div id="other">
+    <textarea id="other_chat-log" cols="100" rows="20"></textarea><br>
+
+</div>
+<input id="chat-message-input" type="text" size="100"><br>
+<input id="chat-message-submit" type="button" value="Send">
+
+<input id="user_id">
+
+{{ room_name|json_script:"room-name" }}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const roomName = JSON.parse(document.getElementById('room-name').textContent);
+        const chatSocket = new WebSocket(
+            'ws://'
+            + window.location.host
+            + '/ws/chat/'
+            + roomName
+            + '/'
+        );
+        chatSocket.onopen = function (e){
+            alert(`django web socket open`)
+        }
+        console.log(roomName)
+        chatSocket.onmessage = function (e) {
+            document.querySelector('#self_chat-log').value="";
+            document.querySelector('#other_chat-log').value="";
+            const data = JSON.parse(e.data);
+            console.log(data.id)
+            console.log(data)
+            cur_id = document.querySelector(`#user_id`).value;
+            if (data.message[1][1] == cur_id) {
+                document.querySelector('#self_chat-log').value += (data.message[1][1] + " : " + data.message[0][1] + '\n');
+
+            } else {
+                document.querySelector('#other_chat-log').value += (data.message[1][1] + " : " + data.message[0][1] + '\n');
+
+            }
+            for (let i = 2; i < data.message.length; i++) {
+
+                if (data.message[i][1][1] == cur_id) {
+                    document.querySelector('#self_chat-log').value += (data.message[i][1][1] + " : " + data.message[i][0][1] + '\n');
+
+                } else {
+                    document.querySelector('#other_chat-log').value += (data.message[i][1][1] + " : " + data.message[i][0][1] + '\n');
+
+                }
+            }
+            console.log(`ssssssssssss`)
+
+
+        };
+        chatSocket.onerror = function (error) {
+            console.log(error)
+            alert(`[error]`);
+        };
+        chatSocket.onclose = function (event) {
+            console.log(event)
+            if (event.wasClean) {
+                alert(`[close] 커넥션이 정상적으로 종료되었습니다(code=${event.code} reason=${event.reason})`);
+            } else {
+                // 예시: 프로세스가 죽거나 네트워크에 장애가 있는 경우
+                // event.code가 1006이 됩니다.
+                alert('[close] 커넥션이 죽었습니다.');
+            }
+        };
+
+        document.querySelector('#chat-message-input').focus();
+        document.querySelector('#chat-message-input').onkeyup = function (e) {
+            if (e.keyCode === 13) {  // enter, return
+                document.querySelector('#chat-message-submizt').click();
+            }
+        };
+
+        document.querySelector('#chat-message-submit').onclick = function (e) {
+            const messageInputDom = document.querySelector('#chat-message-input');
+            const message = messageInputDom.value;
+            const userId = document.querySelector(`#user_id`).value
+            chatSocket.send(JSON.stringify({
+                'message': message,
+                'user_id': userId
+            }));
+            messageInputDom.value = '';
+
+        }
+    })
+
+
+</script>
+</body>
+</html>
